@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Seja o Switch</title>
+<style>
+:root{--bg:#f3f4f8;--panel:#fff;--line:#d9dce6;--text:#141a26;--mute:#5d6577;--blue:#2447e8;--green:#12935f;--yellow:#c78f00;--bad:#d23a3a;--ok:#12935f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1420;--panel:#192131;--line:#2b3550;--text:#eef1f8;--mute:#9aa4bb;--blue:#5b7dff;--green:#3ccf8e;--yellow:#f2c230;--bad:#ff6b6b;--ok:#3ccf8e;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1420;--panel:#192131;--line:#2b3550;--text:#eef1f8;--mute:#9aa4bb;--blue:#5b7dff;--green:#3ccf8e;--yellow:#f2c230;--bad:#ff6b6b;--ok:#3ccf8e;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.4;min-height:100vh}
+#app{max-width:520px;margin:0 auto;padding:16px 14px 40px}
+h1{font-size:40px;line-height:1.05;margin:0 0 12px;font-weight:800;letter-spacing:-1px}
+h2{font-size:18px;margin:16px 0 8px}
+p{margin:0 0 12px;color:var(--mute);font-size:16px}
+code,.mac{font-family:ui-monospace,Menlo,Consolas,monospace}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;font-weight:600}
+.leds{display:flex;gap:6px}.led{width:14px;height:14px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}.led.off{background:var(--line);box-shadow:none}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:4px 11px}
+.frame{background:var(--panel);border:2px solid var(--blue);border-radius:14px;padding:14px;margin:14px 0}
+.frame .t{font-size:13px;color:var(--mute);margin-bottom:8px}
+.frame .r{display:flex;justify-content:space-between;gap:8px;font-size:15px;margin:4px 0}
+.mac{font-size:20px;font-weight:700}
+.tbl{width:100%;border-collapse:collapse;font-size:15px;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tbl th,.tbl td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--line)}
+.tbl th{font-size:12px;color:var(--mute);font-weight:600}
+.tbl tr.new td{background:color-mix(in srgb,var(--ok) 22%,var(--panel))}
+.empty{color:var(--mute);text-align:center;font-style:italic}
+.ports{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:8px}
+.pt{font:inherit;font-weight:800;font-size:16px;background:var(--panel);color:var(--text);border:3px solid var(--line);border-radius:10px;min-height:54px;cursor:pointer}
+.pt.v10{border-color:var(--blue)}.pt.v20{border-color:var(--green)}.pt.v30{border-color:var(--yellow)}
+.btn{display:block;width:100%;font:inherit;font-weight:700;font-size:16px;background:var(--blue);color:#fff;border:0;border-radius:12px;padding:14px;min-height:52px;cursor:pointer;margin-bottom:8px}
+.btn.alt{background:var(--panel);color:var(--text);border:2px solid var(--line)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+button:disabled{opacity:.5}
+.fb{border-left:4px solid var(--line);padding:6px 12px;margin:10px 0;font-size:15px}
+.fb.ok{border-color:var(--ok)}.fb.bad{border-color:var(--bad)}
+.big{font-size:60px;font-weight:800;line-height:1}
+.miss{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:14px}
+.step{font-size:14px;font-weight:700;margin:14px 0 8px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+var BC="FF:FF:FF:FF:FF:FF";
+var DEV=[{m:"AA:01",p:1},{m:"BB:02",p:2},{m:"CC:03",p:3},{m:"DD:04",p:4},{m:"EE:05",p:5},{m:"11:06",p:6},{m:"22:07",p:6}];
+var VL={1:10,2:10,3:20,4:20,5:30,6:30};
+var S,app=document.getElementById("app");
+function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+function lvl2(){return S.lv===2}
+function hdr(){var l="";for(var i=0;i<3;i++)l+='<span class="led'+(i<S.lives?"":" off")+'"></span>';
+return '<div class="bar"><div class="leds" aria-label="Vidas: '+S.lives+'">'+l+'</div><span class="pill">Nível '+S.lv+' · quadro '+S.n+'/10</span><span class="pill">'+S.score+' pts</span></div>'}
+function intro(){S={lives:3,score:0,streak:0,lv:1,n:0,table:{},prev:null,miss:[]};
+app.innerHTML='<h1>Seja o Switch</h1><p>Você é o switch de uma rede com 6 portas. Cada quadro que chega traz um endereço MAC de origem e um de destino. Sua tabela MAC começa vazia.</p><h2>Suas regras</h2><p><b>1. Aprender:</b> se a origem ainda não está na tabela, anote-a na porta por onde o quadro chegou.<br><b>2. Decidir:</b> destino conhecido em outra porta: envie só para ela. Destino desconhecido ou broadcast: inunde. Destino na mesma porta de origem: descarte.</p><p>A porta 6 tem um hub com dois aparelhos (11:06 e 22:07). Você começa com 3 vidas.</p><button class="btn" id="go">Ligar o switch</button>';
+document.getElementById("go").onclick=next}
+function gen(){var f,p=S.prev;
+if(p&&p.d&&Math.random()<.4)f={s:p.d,d:p.s};
+else if(Math.random()<.15)f=Math.random()<.5?{s:DEV[5],d:DEV[6]}:{s:DEV[6],d:DEV[5]};
+else{var s=rnd(DEV);f={s:s,d:Math.random()<.12?null:rnd(DEV.filter(function(x){return x!==s}))}}
+return f}
+function expected(f){var sp=f.s.p;
+if(!f.d)return{t:"flood",x:"Destino broadcast: vai para todos"+(lvl2()?" da mesma VLAN ("+VL[sp]+")":" menos a porta de origem")+"."};
+var kp=S.table[f.d.m];
+if(kp===undefined)return{t:"flood",x:"Destino "+f.d.m+" ainda é desconhecido: o switch inunda"+(lvl2()?" só a VLAN "+VL[sp]:"")+" e aprende quando ele responder."};
+if(lvl2()&&VL[kp]!==VL[sp])return{t:"drop",x:"O destino está na VLAN "+VL[kp]+" e a origem na VLAN "+VL[sp]+". O switch não encaminha entre VLANs."};
+if(kp===sp)return{t:"drop",x:"Origem e destino estão na mesma porta ("+sp+"). Não precisa encaminhar: descarte."};
+return{t:"fwd",p:kp,x:"Destino conhecido na porta "+kp+": encaminhamento direto (unicast), sem incomodar as outras portas."}}
+function next(){if(S.n>=10){if(S.lv===1)return lvlup();return end()}
+S.n++;S.f=gen();draw("")}
+function tbl(hl){var h='<table class="tbl"><tr><th>Endereço MAC</th><th>Porta</th>'+(lvl2()?'<th>VLAN</th>':'')+'</tr>',k=Object.keys(S.table);
+if(!k.length)h+='<tr><td class="empty" colspan="3">Tabela vazia</td></tr>';
+k.forEach(function(m){h+='<tr'+(m===hl?' class="new"':'')+'><td class="mac">'+m+'</td><td>'+S.table[m]+'</td>'+(lvl2()?'<td>'+VL[S.table[m]]+'</td>':'')+'</tr>'});
+return h+'</table>'}
+function pbtns(cls,pre){var h='<div class="ports">';for(var i=1;i<=6;i++)h+='<button class="pt'+(lvl2()?' v'+VL[i]:'')+'" data-p="'+i+'" aria-label="'+pre+' '+i+'">'+i+'</button>';return h+'</div>'}
+function draw(msg,hl){var f=S.f,need=S.table[f.s.m]===undefined;
+var h=hdr()+'<div class="frame"><div class="t">Quadro chegou pela <b>porta '+f.s.p+'</b>'+(lvl2()?' (VLAN '+VL[f.s.p]+')':'')+'</div><div class="r"><span>Origem</span><span class="mac">'+f.s.m+'</span></div><div class="r"><span>Destino</span><span class="mac">'+(f.d?f.d.m:BC)+'</span></div></div>'+msg;
+h+='<h2>Tabela MAC</h2>'+tbl(hl);
+if(need){h+='<div class="step">Passo 1: em qual porta anotar '+f.s.m+'?</div>'+pbtns("","Anotar na porta");app.innerHTML=h;
+app.querySelectorAll(".pt").forEach(function(b){b.onclick=function(){var p=+b.dataset.p;
+if(p===f.s.p){S.table[f.s.m]=p;draw("",f.s.m)}else{S.lives--;S.streak=0;S.miss.push(["Anotou "+f.s.m+" na porta "+p,"O quadro chegou pela porta "+f.s.p+", então o MAC de origem vive nela."]);S.table[f.s.m]=f.s.p;if(S.lives<=0)return end();draw('<div class="fb bad">Errado. O quadro chegou pela porta '+f.s.p+'. Anotei por você.</div>',f.s.m)}}})}
+else{h+='<div class="step">Passo 2: o que fazer com o quadro?</div><div class="step" style="font-weight:400;margin-top:0">Enviar só para a porta:</div>'+pbtns("","Enviar para a porta")+'<div class="row2"><button class="btn alt" id="fl">Inundar</button><button class="btn alt" id="dr">Descartar</button></div>';app.innerHTML=h;
+function pick(c){var e=expected(f),ok=c.t===e.t&&(c.t!=="fwd"||c.p===e.p);
+app.querySelectorAll("button").forEach(function(b){b.disabled=true});
+if(ok){S.streak++;S.score+=100+S.streak*10}else{S.streak=0;S.lives--;S.miss.push(["Quadro "+f.s.m+" → "+(f.d?f.d.m:"broadcast")+" na porta "+f.s.p,e.x])}
+S.prev=f;var o=document.createElement("div");
+o.innerHTML='<div class="fb '+(ok?"ok":"bad")+'">'+(ok?"Certo! ":"Não foi essa. ")+e.x+'</div><button class="btn" id="nx">'+(S.lives<=0?"Ver resultado":"Próximo quadro")+'</button>';app.appendChild(o);
+var n=document.getElementById("nx");n.disabled=false;n.onclick=function(){S.lives<=0?end():next()};n.focus()}
+app.querySelectorAll(".pt").forEach(function(b){b.onclick=function(){pick({t:"fwd",p:+b.dataset.p})}});
+document.getElementById("fl").onclick=function(){pick({t:"flood"})};document.getElementById("dr").onclick=function(){pick({t:"drop"})}}}
+function lvlup(){app.innerHTML=hdr()+'<h1>Nível 2: VLANs</h1><p>O administrador configurou VLANs: portas 1 e 2 na VLAN 10 (azul), 3 e 4 na VLAN 20 (verde), 5 e 6 na VLAN 30 (amarelo). A tabela foi zerada.</p><p>Novas regras: a inundação fica só dentro da VLAN, e um quadro cujo destino está em outra VLAN deve ser <b>descartado</b>.</p><button class="btn" id="go">Começar nível 2</button>';
+document.getElementById("go").onclick=function(){S.lv=2;S.n=0;S.table={};S.prev=null;next()}}
+function end(){var win=S.lives>0,r=S.score>=1800?"Administrador de rede":S.score>=1100?"Técnico de redes":S.score>=500?"Estagiário de TI":"Aprendiz de redes";
+var h='<h1>'+(win?"Switch estável":"Switch travou")+'</h1><div class="big">'+S.score+'</div><p>pontos · nível: <b style="color:var(--text)">'+r+'</b></p>';
+if(S.miss.length){h+='<h2>Para revisar</h2>';S.miss.forEach(function(m){h+='<div class="miss"><b>'+m[0]+'</b><br>'+m[1]+'</div>'})}
+h+='<button class="btn" id="re">Jogar de novo</button>';app.innerHTML=h;document.getElementById("re").onclick=intro}
+intro();
+</script>
+</body>
+</html>
